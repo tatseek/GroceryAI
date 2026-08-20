@@ -1,0 +1,88 @@
+# =========================
+# Environment / Secrets
+# =========================
+
+.env
+.env.*
+!.env.example
+
+# =========================
+# Python
+# =========================
+
+__pycache__/
+*.py[cod]
+*.pyo
+
+.venv/
+venv/
+env/
+
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# =========================
+# FastAPI / Logs
+# =========================
+
+*.log
+
+# =========================
+# Alembic
+# =========================
+
+# Keep migration files tracked!
+# Do NOT ignore alembic/versions/
+
+# =========================
+# Flutter / Dart
+# =========================
+
+flutter_app/.dart_tool/
+flutter_app/.packages
+flutter_app/.pub-cache/
+flutter_app/.flutter-plugins
+flutter_app/.flutter-plugins-dependencies
+
+flutter_app/build/
+
+flutter_app/.idea/
+flutter_app/.vscode/
+
+# =========================
+# Android
+# =========================
+
+flutter_app/android/.gradle/
+flutter_app/android/local.properties
+
+flutter_app/android/app/debug/
+flutter_app/android/app/profile/
+flutter_app/android/app/release/
+
+# =========================
+# IDE
+# =========================
+
+.vscode/
+.idea/
+
+# =========================
+# OS
+# =========================
+
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# =========================
+# Temporary files
+# =========================
+
+*.tmp
+*.temp
+*.swp
+*.swo
