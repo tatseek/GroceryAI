@@ -5,6 +5,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     database_url: str
+    groq_api_key: str
 
     supabase_url: str | None = None
     supabase_publishable_key: str | None = None
