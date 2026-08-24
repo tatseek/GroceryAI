@@ -1,6 +1,9 @@
 import json
 
-from app.agent.tools import search_products
+from app.agent.tools import (
+    compare_prices,
+    search_products,
+    )
 from app.core.config import settings
 from groq import AsyncGroq
 
@@ -36,6 +39,32 @@ SEARCH_PRODUCTS_TOOL = {
     },
 }
 
+COMPARE_PRICES_TOOL = {
+    "type": "function",
+    "function": {
+        "name": "compare_prices",
+        "description": (
+            "Search available grocery products across providers "
+            "and compare their prices. Use this when the user "
+            "asks which provider has the cheapest option."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": (
+                        "The grocery product to compare, "
+                        "such as milk, rice, or bread."
+                    ),
+                }
+            },
+            "required": ["query"],
+            "additionalProperties": False,
+        },
+    },
+}
+
 
 async def run_agent(user_message: str) -> str:
     response = await client.chat.completions.create(
@@ -54,7 +83,10 @@ async def run_agent(user_message: str) -> str:
                 "content": user_message,
             },
         ],
-        tools=[SEARCH_PRODUCTS_TOOL],
+        tools=[
+            SEARCH_PRODUCTS_TOOL,
+            COMPARE_PRICES_TOOL,
+            ],
         tool_choice="auto",
     )
 
@@ -73,6 +105,25 @@ async def run_agent(user_message: str) -> str:
             )
 
             result = await search_products(
+                arguments["query"]
+            )
+
+            tool_messages.append(
+                {
+                    "role": "tool",
+                    "tool_call_id": tool_call.id,
+                    "content": json.dumps(
+                        result,
+                        default=str,
+                    ),
+                }
+            )
+        elif tool_call.function.name == "compare_prices":
+            arguments = json.loads(
+                tool_call.function.arguments
+            )
+
+            result = await compare_prices(
                 arguments["query"]
             )
 

@@ -28,3 +28,48 @@ async def search_products(query: str) -> list[dict]:
         }
         for product in products
     ]
+
+async def compare_prices(query: str) -> dict:
+    """
+    Search products across providers and compare their prices.
+
+    Price comparison is performed deterministically by the backend.
+    """
+
+    products = await search_products(query)
+
+    available_products = [
+        product
+        for product in products
+        if product["available"]
+    ]
+
+    if not available_products:
+        return {
+            "query": query,
+            "found": False,
+            "message": "No available products found.",
+            "products": [],
+        }
+
+    sorted_products = sorted(
+        available_products,
+        key=lambda product: product["price"],
+    )
+
+    cheapest = sorted_products[0]
+    most_expensive = sorted_products[-1]
+
+    savings = (
+        most_expensive["price"]
+        - cheapest["price"]
+    )
+
+    return {
+        "query": query,
+        "found": True,
+        "cheapest": cheapest,
+        "most_expensive": most_expensive,
+        "savings": round(savings, 2),
+        "products": sorted_products,
+    }
