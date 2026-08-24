@@ -55,22 +55,42 @@ The system is designed around a provider-independent AI abstraction so that the 
 ```text
 backend/
 └── app/
+    ├── agent/
+    │   ├── __init__.py
+    │   ├── controller.py
+    │   └── tools.py
+    │
     ├── ai/
     │   ├── base.py
     │   ├── groq.py
+    |   ├── prompts.py
     │   └── gemini.py
     │
     ├── api/
     │   └── agent.py
+    |   ├── agent_chat.py
+    │   └── search.py
     │
     ├── core/
     │   └── config.py
+    │
+    ├── models/
+    │   ├── product.py
+    │   ├── provider.py
+    │   └── provider_product.py
+    |
+    ├── providers/
+    │   ├── blinkit.py
+    │   ├── zepto.py
+    │   └── instamart.py
     │
     ├── schemas/
     │   └── agent.py
     │
     ├── services/
     │   └── requirement_service.py
+    │   ├── search_service.py
+    │   └── normalization_service.py
     │
     └── main.py
 ```
@@ -199,19 +219,22 @@ The LLM should not be trusted to perform critical numerical calculations.
 - Groq integration
 - Structured requirement extraction
 - Pydantic validation
+- Product search
+- Availability checking
+- Price comparison
+- Delivery calculation
+- Agent tool calling
+- Budget-aware basket optimization
+- Multi-provider basket optimization
 
 ### In Progress
 
-- Product search tools
-- Availability tools
-- Price comparison
-- Basket optimization
-- Agent tool calling
+- Frontend
+- End-to-end shopping workflow
 
 ### Planned
 
-- Frontend
-- Complete shopping workflow
+- UI/UX improvements
 - Error handling
 - Testing
 - Deployment

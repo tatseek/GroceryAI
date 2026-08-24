@@ -1,5 +1,5 @@
 from app.services.search_service import SearchService
-
+from itertools import product as cartesian_product
 
 search_service = SearchService()
 
@@ -169,122 +169,181 @@ async def optimize_basket(
     budget: float | None = None,
 ) -> dict:
     """
-    Find the cheapest single-provider basket for the
-    requested grocery items, including delivery charges.
+    Find the cheapest grocery basket, including the possibility
+    of splitting items across multiple providers.
     """
 
-    provider_products: dict[str, list[dict]] = {}
+    # 1. Search for every requested item
+
+    item_results: dict[str, list[dict]] = {}
 
     for query in queries:
         products = await search_products(query)
 
-        for product in products:
-            if not product["available"]:
-                continue
+        available_products = [
+            product
+            for product in products
+            if product["available"]
+        ]
 
-            provider = product["provider"]
+        item_results[query] = available_products
 
-            if provider not in provider_products:
-                provider_products[provider] = []
+    # 2. Check whether every requested item was found
 
-            provider_products[provider].append(
+    missing_items = [
+        query
+        for query in queries
+        if not item_results.get(query)
+    ]
+
+    if missing_items:
+        return {
+            "found": False,
+            "budget": budget,
+            "missing_items": missing_items,
+            "message": (
+                "Some requested items are unavailable."
+            ),
+            "best_basket": None,
+            "alternatives": [],
+        }
+
+    # 3. Build provider choices for every item
+
+    choices_per_item = []
+
+    for query in queries:
+        choices = []
+
+        for product in item_results[query]:
+            choices.append(
                 {
                     "query": query,
                     **product,
                 }
             )
 
-    if not provider_products:
-        return {
-            "found": False,
-            "message": "No available products found.",
-            "baskets": [],
-        }
+        choices_per_item.append(choices)
 
-    baskets = []
+    # 4. Generate every possible provider assignment
 
-    for provider, products in provider_products.items():
+    candidate_baskets = []
 
-        selected_items = []
-        subtotal = 0.0
-        missing_items = []
+    for combination in cartesian_product(*choices_per_item):
 
-        for query in queries:
-            matches = [
-                product
-                for product in products
-                if product["query"] == query
-            ]
+        provider_groups: dict[str, list[dict]] = {}
 
-            if not matches:
-                missing_items.append(query)
-                continue
+        for item in combination:
+            provider = item["provider"]
 
-            cheapest = min(
-                matches,
-                key=lambda product: product["price"],
+            if provider not in provider_groups:
+                provider_groups[provider] = []
+
+            provider_groups[provider].append(item)
+
+        # 5. Calculate subtotal + delivery for every provider
+
+        provider_breakdown = []
+
+        final_total = 0.0
+        total_subtotal = 0.0
+        total_delivery = 0.0
+
+        for provider, items in provider_groups.items():
+
+            subtotal = sum(
+                float(item["price"])
+                for item in items
             )
 
-            selected_items.append(cheapest)
-            subtotal += cheapest["price"]
+            delivery = await calculate_delivery(
+                provider,
+                subtotal,
+            )
 
-        delivery = await calculate_delivery(
-            provider,
-            subtotal,
+            delivery_fee = float(
+                delivery["delivery_fee"]
+            )
+
+            provider_total = subtotal + delivery_fee
+
+            total_subtotal += subtotal
+            total_delivery += delivery_fee
+            final_total += provider_total
+
+            provider_breakdown.append(
+                {
+                    "provider": provider,
+                    "items": items,
+                    "subtotal": round(subtotal, 2),
+                    "delivery_fee": round(
+                        delivery_fee,
+                        2,
+                    ),
+                    "total": round(
+                        provider_total,
+                        2,
+                    ),
+                }
+            )
+
+        # 6. Check budget
+
+        within_budget = (
+            budget is None
+            or final_total <= budget
         )
 
-        total = delivery["total"]
-
-        baskets.append(
+        candidate_baskets.append(
             {
-                "provider": provider,
-                "items": selected_items,
-                "subtotal": round(subtotal, 2),
-                "delivery_fee": delivery["delivery_fee"],
-                "total": total,
-                "missing_items": missing_items,
-                "complete": len(missing_items) == 0,
+                "providers": provider_breakdown,
+                "subtotal": round(
+                    total_subtotal,
+                    2,
+                ),
+                "delivery_fee": round(
+                    total_delivery,
+                    2,
+                ),
+                "total": round(
+                    final_total,
+                    2,
+                ),
+                "provider_count": len(
+                    provider_groups
+                ),
+                "within_budget": within_budget,
             }
         )
 
-    complete_baskets = [
+    # 7. Prefer baskets within budget
+
+    affordable_baskets = [
         basket
-        for basket in baskets
-        if basket["complete"]
+        for basket in candidate_baskets
+        if basket["within_budget"]
     ]
 
-    if complete_baskets:
-        baskets_to_compare = complete_baskets
-    else:
-        baskets_to_compare = baskets
+    baskets_to_compare = (
+        affordable_baskets
+        if affordable_baskets
+        else candidate_baskets
+    )
+
+    # 8. Cheapest basket wins
 
     baskets_to_compare.sort(
-        key=lambda basket: (
-            basket["total"] is None,
-            basket["total"] or float("inf"),
-        )
+        key=lambda basket: basket["total"]
     )
 
-    best_basket = (
-        baskets_to_compare[0]
-        if baskets_to_compare
-        else None
-    )
-
-    within_budget = (
-        best_basket is not None
-        and best_basket["total"] is not None
-        and (
-            budget is None
-            or best_basket["total"] <= budget
-        )
-    )
+    best_basket = baskets_to_compare[0]
 
     return {
-        "found": best_basket is not None,
+        "found": True,
         "budget": budget,
-        "within_budget": within_budget,
+        "within_budget": best_basket["within_budget"],
         "best_basket": best_basket,
-        "alternatives": baskets_to_compare[1:],
+        "alternatives": baskets_to_compare[1:5],
+        "missing_items": [],
     }
 

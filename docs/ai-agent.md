@@ -126,9 +126,9 @@ This prevents malformed LLM output from directly entering business logic.
 
 ## Agent Tools
 
-The planned agent will have access to application tools.
+The agent has access to the following application tools:
 
-Planned tools:
+Implemented tools:
 
 ```text
 search_products()
@@ -165,7 +165,7 @@ LLM
 
 ## Tool Calling
 
-The agent will use function/tool calling to decide when application capabilities are required.
+The agent uses function/tool calling to decide when application capabilities are required.
 
 For example:
 

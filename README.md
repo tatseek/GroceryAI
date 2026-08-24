@@ -15,25 +15,39 @@ GroceryAI extracts the requirements, searches available products, compares price
 ## Architecture
 
 ```text
-Frontend
-   |
-   v
-FastAPI Backend
-   |
-   +---- AI Requirement Parser
-   |
-   +---- Agent / Tool Calling
-   |
-   +---- Product Search
-   |
-   +---- Price Comparison
-   |
-   +---- Availability
-   |
-   +---- Basket Optimizer
-   |
-   v
-PostgreSQL / Supabase
+                         User
+                           │
+                           ▼
+                         FastAPI
+                           │
+                 ┌─────────┴─────────┐
+                 │                   │
+                 ▼                   ▼
+        Requirement Parser       Groq Agent
+                 │                   │
+                 │             ┌─────┴─────┐
+                 │             │   Agent   │
+                 │             │   Tools   │
+                 │             └─────┬─────┘
+                 │                   │
+                 │       ┌───────────┼────────────┐
+                 │       ▼           ▼            ▼
+                 │   Search      Compare      Availability
+                 │   Products     Prices         Check
+                 │       │           │            │
+                 │       └───────────┼────────────┘
+                 │                   ▼
+                 │           Basket Optimizer
+                 │                   │
+                 │           Delivery Calculator
+                 │                   │
+                 └───────────┬───────┘
+                             ▼
+                       SearchService
+                             │
+                    ┌────────┼────────┐
+                    ▼        ▼        ▼
+                 Blinkit   Zepto   Instamart
 ```
 
 ---
@@ -75,13 +89,12 @@ PostgreSQL / Supabase
 
 ## Planned Features
 
-- Product search
-- Multi-store comparison
-- Availability checking
-- Delivery calculation
-- Basket optimization
-- AI shopping agent
-- Final basket recommendations
+- Frontend application
+- End-to-end shopping workflow
+- UI/UX improvements
+- Error handling
+- Testing
+- Deployment
 
 ---
 
@@ -163,4 +176,4 @@ Never commit `.env` or API credentials.
 
 Currently under active development.
 
-Day 1 foundation and Day 2 AI requirement parsing are complete.
+Day 1 foundation, Day 2 AI requirement parsing, and Day 3 agent/tool integration are complete.
